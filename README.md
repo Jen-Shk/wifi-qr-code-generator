@@ -10,8 +10,8 @@ The idea is to make it easier to share Wi-Fi without typing the password.
 - Works on both mobile and desktop browsers
 
 ## How to use
-1. Go to the Generator tab, enter Wi-Fi details, then click generate. You can download or copy the code.
-2. Go to the Scanner tab, allow camera access, and point it at a QR code. It will show the Wi-Fi name and password.
+1. Go to the **Generator** tab, enter Wi-Fi details, then click generate. You can download or copy the code.
+2. Go to the **Scanner tab**, allow camera access, and point it at a QR code. It will show the Wi-Fi name and password.
 
 ## Notes
 - The scanner asks for camera permission, but it is safe. The camera is only used inside your browser and nothing is stored.
@@ -23,4 +23,4 @@ MIT License – free to use, change, and share.
 
 ---
 
-Made by Jenit Lal Shakya
+Made by **Jenit Lal Shakya**
