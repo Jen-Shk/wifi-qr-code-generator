@@ -69,13 +69,45 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   
     downloadBtn.addEventListener("click", () => {
-      const url = canvas.toDataURL("image/png");
+      const ssid = ssidEl.value.trim();
+      if (!ssid) {
+        alert("Please generate a QR first.");
+        return;
+      }
+    
+      const qrCanvas = canvas; // existing QR canvas
+      if (!qrCanvas) return;
+    
+      // Create new canvas for download (bigger, includes text)
+      const downloadCanvas = document.createElement("canvas");
+      const ctx = downloadCanvas.getContext("2d");
+    
+      const width = 400;
+      const height = 460; // extra space for WiFi name
+      downloadCanvas.width = width;
+      downloadCanvas.height = height;
+    
+      // White background
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, width, height);
+    
+      // Add WiFi name text
+      ctx.fillStyle = "#000";
+      ctx.font = "20px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(ssid, width / 2, 30);
+    
+      // Draw QR code (resize into middle)
+      const qrSize = 320;
+      ctx.drawImage(qrCanvas, (width - qrSize) / 2, 60, qrSize, qrSize);
+    
+      // Trigger download
       const a = document.createElement("a");
-      a.href = url;
-      a.download = `wifi-qr-${Date.now()}.png`;
+      a.href = downloadCanvas.toDataURL("image/png");
+      a.download = `wifi-qr-${ssid || "network"}.png`;
       a.click();
     });
-  
+      
     copyBtn.addEventListener("click", async () => {
       const text = payloadEl.textContent.trim();
       if (!text) return;
@@ -88,4 +120,3 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 });
-  
