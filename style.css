@@ -10,7 +10,7 @@
 * {
     box-sizing: border-box;
 }
-  
+
 body {
     margin: 0;
     font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
@@ -132,6 +132,47 @@ button:active {
     font-size: 13px;
 }
 
+.tabs {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin: 1rem 0;
+}
+
+.tabs button {
+    padding: .5rem 1rem;
+    border: none;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    background: none;
+    font-size: 1rem;
+    color: var(--text);
+}
+
+.tabs button.active {
+    border-color: var(--accent);
+    font-weight: bold;
+}
+
+.hidden {
+    display: none;
+}
+
+video {
+    width: 280px;
+    height: 280px;
+    object-fit: cover;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+#copy-pass {
+    margin-left: 8px;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 8px;
+}
+
 footer {
     color: var(--text);
     padding: 15px;
@@ -145,6 +186,7 @@ footer {
 footer p {
     margin: 5px 0;
 }
+
 @media (max-width: 720px) {
     form.card {
         grid-template-columns: 1fr;
