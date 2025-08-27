@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Wi-Fi QR Code Generator</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <main class="container">
+      <h1>Wi-Fi QR Code Generator</h1>
+
+      <form id="wifi-form" class="card" autocomplete="off">
+        <label>
+          Wi-Fi Name (SSID)
+          <input type="text" id="ssid" placeholder="e.g., Home_Network" required>
+        </label>
+
+        <label>
+          Security
+          <select id="auth">
+            <option value="WPA" selected>WPA/WPA2/WPA3</option>
+            <option value="WEP">WEP</option>
+            <option value="nopass">None (Open)</option>
+          </select>
+        </label>
+
+        <label id="password-wrap">
+          Password
+          <input type="text" id="password" placeholder="••••••••">
+        </label>
+
+        <label class="row">
+          <input type="checkbox" id="hidden">
+          <span>Hidden network</span>
+        </label>
+
+        <button type="submit" id="generate">Generate QR</button>
+      </form>
+
+      <section class="output card">
+        <h2>Your QR Code</h2>
+        <canvas id="qr-canvas" width="280" height="280" aria-label="Wi-Fi QR code"></canvas>
+
+        <div class="row">
+          <button id="download">Download PNG</button>
+          <button id="copy">Copy Text Payload</button>
+        </div>
+
+        <p class="note">
+          Scan with your phone's camera to join the Wi-Fi network.
+        </p>
+
+        <pre id="payload" class="payload" aria-live="polite"></pre>
+      </section>
+    </main>
+
+    <footer>
+        <p>
+            Current Year <span id="year"></span><br>
+            &copy; 2025 WiFi QR Code Generator. All rights reserved.
+        </p>
+        <p>
+          🔒 Your WiFi data is safe — nothing is stored on our servers.
+        </p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+    <script src="app.js"></script>
+    <script>
+    // Auto update year
+    document.getElementById("year").textContent = new Date().getFullYear();
+    </script>
+  </body>
+</html>
