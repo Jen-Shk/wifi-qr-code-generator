@@ -3,6 +3,9 @@
 This is a small project I made to generate and scan Wi-Fi QR codes.  
 The idea is to make it easier to share Wi-Fi without typing the password.
 
+## Try it here
+👉 [Live Demo](https://jen-shk.github.io/wifi-qr-code-generator/)
+
 ## Features
 - Generate QR codes for Wi-Fi (SSID, password, security type, hidden network)
 - Download the QR as an image or copy the text
