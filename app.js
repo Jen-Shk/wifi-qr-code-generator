@@ -1,246 +1,288 @@
 document.addEventListener("DOMContentLoaded", () => {
-  function escapeWiFi(text) {
-    return String(text).replace(/([\\;,":])/g, "\\$1");
-  }
-
-  function buildWifiPayload({ ssid, password, auth, hidden }) {
-    const S = escapeWiFi(ssid);
-    const H = hidden ? "H:true;" : "";
-    if (auth === "nopass") return `WIFI:T:nopass;S:${S};${H};`;
-    const P = escapeWiFi(password);
-    return `WIFI:T:${auth};S:${S};P:${P};${H};`;
-  }
-
-  const form = document.getElementById("wifi-form");
-  const ssidEl = document.getElementById("ssid");
-  const passEl = document.getElementById("password");
-  const authEl = document.getElementById("auth");
-  const hiddenEl = document.getElementById("hidden");
-  const payloadEl = document.getElementById("payload");
-  const canvas = document.getElementById("qr-canvas");
-  const downloadBtn = document.getElementById("download");
-  const copyBtn = document.getElementById("copy");
-  const passwordWrap = document.getElementById("password-wrap");
-
-  function togglePasswordVisibility() {
-    passwordWrap.style.display = authEl.value === "nopass" ? "none" : "grid";
-  }
-  togglePasswordVisibility();
-  authEl.addEventListener("change", togglePasswordVisibility);
-
-  async function drawQR(text) {
-    await QRCode.toCanvas(canvas, text, {
-      width: 280,
-      margin: 1,
-      errorCorrectionLevel: "M"
-    });
-  }
-
-  async function generateAndRender() {
-    const data = {
-      ssid: ssidEl.value.trim(),
-      password: passEl.value,
-      auth: authEl.value,
-      hidden: hiddenEl.checked
-    };
-    if (!data.ssid) {
-      alert("Please enter the Wi-Fi name (SSID).");
-      ssidEl.focus();
-      return;
+    // ===== Wi-Fi QR Generator =====
+    function escapeWiFi(text) {
+      return String(text).replace(/([\\;,":])/g, "\\$1");
     }
-    if (data.auth !== "nopass" && !data.password) {
-      alert("Please enter the Wi-Fi password (or choose None).");
-      passEl.focus();
-      return;
+  
+    function buildWifiPayload({ ssid, password, auth, hidden }) {
+      const S = escapeWiFi(ssid);
+      const H = hidden ? "H:true;" : "";
+      if (auth === "nopass") return `WIFI:T:nopass;S:${S};${H};`;
+      const P = escapeWiFi(password);
+      return `WIFI:T:${auth};S:${S};P:${P};${H};`;
     }
-    const payload = buildWifiPayload(data);
-    payloadEl.textContent = payload;
-    await drawQR(payload);
-  }
-
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    generateAndRender();
-  });
-
-  downloadBtn.addEventListener("click", () => {
-    const ssid = ssidEl.value.trim();
-    if (!ssid) {
-      alert("Please generate a QR first.");
-      return;
+  
+    const form = document.getElementById("wifi-form");
+    const ssidEl = document.getElementById("ssid");
+    const passEl = document.getElementById("password");
+    const authEl = document.getElementById("auth");
+    const hiddenEl = document.getElementById("hidden");
+    const payloadEl = document.getElementById("payload");
+    const canvas = document.getElementById("qr-canvas");
+    const downloadBtn = document.getElementById("download");
+    const copyBtn = document.getElementById("copy");
+    const passwordWrap = document.getElementById("password-wrap");
+  
+    // Show or hide password field based on auth type
+    function togglePasswordVisibility() {
+      passwordWrap.style.display = authEl.value === "nopass" ? "none" : "grid";
     }
-    const qrCanvas = canvas;
-    if (!qrCanvas) return;
-    const downloadCanvas = document.createElement("canvas");
-    const ctx = downloadCanvas.getContext("2d");
-    const width = 400;
-    const height = 460;
-    downloadCanvas.width = width;
-    downloadCanvas.height = height;
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(0, 0, width, height);
-    ctx.fillStyle = "#000";
-    ctx.font = "20px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText(ssid, width / 2, 30);
-    const qrSize = 320;
-    ctx.drawImage(qrCanvas, (width - qrSize) / 2, 60, qrSize, qrSize);
-    const a = document.createElement("a");
-    a.href = downloadCanvas.toDataURL("image/png");
-    a.download = `wifi-qr-${ssid || "network"}.png`;
-    a.click();
-  });
-
-  copyBtn.addEventListener("click", async () => {
-    const text = payloadEl.textContent.trim();
-    if (!text) return;
-    try {
-      await navigator.clipboard.writeText(text);
-      copyBtn.textContent = "Copied!";
-      setTimeout(() => (copyBtn.textContent = "Copy Text Payload"), 1200);
-    } catch {
-      alert("Could not copy to clipboard.");
+    togglePasswordVisibility();
+    authEl.addEventListener("change", togglePasswordVisibility);
+  
+    // Draw QR code on canvas
+    async function drawQR(text) {
+      await QRCode.toCanvas(canvas, text, { width: 280, margin: 1, errorCorrectionLevel: "M" });
     }
-  });
-
-  // === Scanner code with camera selector ===
-  const video = document.getElementById("video");
-  const scanResult = document.getElementById("scan-result");
-  const scanInfo = document.getElementById("scan-info");
-  const scanSSID = document.getElementById("scan-ssid");
-  const scanPass = document.getElementById("scan-pass");
-  const copyPassBtn = document.getElementById("copy-pass");
-  const cameraSelect = document.getElementById("camera-select");
-  let stream;
-
-  function parseWiFiPayload(payload) {
-    const match = /^WIFI:T:(.*?);S:(.*?);P:(.*?);/.exec(payload);
-    if (!match) return null;
-    return { type: match[1], ssid: match[2], pass: match[3] };
-  }
-
-  function handleCode(code) {
-    if (code && code.data.startsWith("WIFI:")) {
-      const parsed = parseWiFiPayload(code.data);
-      if (parsed) {
-        scanInfo.classList.remove("hidden");
-        scanSSID.textContent = parsed.ssid || "(none)";
-        scanPass.textContent = parsed.pass || "(none)";
-        scanResult.textContent = "Wi-Fi QR Detected ✅";
-        copyPassBtn.onclick = async () => {
-          try {
-            await navigator.clipboard.writeText(parsed.pass || "");
-            copyPassBtn.textContent = "Copied!";
-            setTimeout(() => (copyPassBtn.textContent = "Copy"), 1200);
-          } catch {
-            alert("Could not copy password.");
-          }
-        };
+  
+    // Generate QR code and update payload
+    async function generateAndRender() {
+      const data = {
+        ssid: ssidEl.value.trim(),
+        password: passEl.value,
+        auth: authEl.value,
+        hidden: hiddenEl.checked
+      };
+  
+      if (!data.ssid) {
+        alert("Please enter the Wi-Fi name (SSID).");
+        ssidEl.focus();
+        return;
       }
-    } else {
-      scanResult.textContent = "Invalid or non-WiFi QR";
+      if (data.auth !== "nopass" && !data.password) {
+        alert("Please enter the Wi-Fi password (or choose None).");
+        passEl.focus();
+        return;
+      }
+  
+      const payload = buildWifiPayload(data);
+      payloadEl.textContent = payload;
+      await drawQR(payload);
     }
-  }
-
-  async function getCameras() {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const videoDevices = devices.filter(d => d.kind === "videoinput");
-    cameraSelect.innerHTML = "";
-    videoDevices.forEach((device, i) => {
-      const option = document.createElement("option");
-      option.value = device.deviceId;
-      option.text = device.label || `Camera ${i + 1}`;
-      cameraSelect.appendChild(option);
+  
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      generateAndRender();
     });
-  }
-
-  cameraSelect.addEventListener("change", startCam);
-  getCameras();
-
-  async function startCam() {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
+  
+    // Download QR code as an image
+    downloadBtn.addEventListener("click", () => {
+      const ssid = ssidEl.value.trim();
+      if (!ssid) {
+        alert("Please generate a QR first.");
+        return;
+      }
+  
+      const downloadCanvas = document.createElement("canvas");
+      const ctx = downloadCanvas.getContext("2d");
+      const width = 400;
+      const height = 460;
+      downloadCanvas.width = width;
+      downloadCanvas.height = height;
+  
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, width, height);
+  
+      ctx.fillStyle = "#000";
+      ctx.font = "20px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(ssid, width / 2, 30);
+  
+      const qrSize = 320;
+      ctx.drawImage(canvas, (width - qrSize) / 2, 60, qrSize, qrSize);
+  
+      const a = document.createElement("a");
+      a.href = downloadCanvas.toDataURL("image/png");
+      a.download = `wifi-qr-${ssid || "network"}.png`;
+      a.click();
+    });
+  
+    // Copy QR payload text to clipboard
+    copyBtn.addEventListener("click", async () => {
+      const text = payloadEl.textContent.trim();
+      if (!text) return;
+      try {
+        await navigator.clipboard.writeText(text);
+        copyBtn.textContent = "Copied!";
+        setTimeout(() => (copyBtn.textContent = "Copy Text Payload"), 1200);
+      } catch {
+        alert("Could not copy to clipboard.");
+      }
+    });
+  
+    // ===== Wi-Fi QR Scanner =====
+    const video = document.getElementById("video");
+    const scanResult = document.getElementById("scan-result");
+    const scanInfo = document.getElementById("scan-info");
+    const scanSSID = document.getElementById("scan-ssid");
+    const scanPass = document.getElementById("scan-pass");
+    const copyPassBtn = document.getElementById("copy-pass");
+    const cameraSelect = document.getElementById("camera-select");
+    const startBtn = document.getElementById("start-scan");
+    const stopBtn = document.getElementById("stop-scan");
+  
+    let stream = null;
+    let scanning = false;
+  
+    // Parse Wi-Fi QR payload
+    function parseWiFiPayload(payload) {
+      const match = /^WIFI:T:(.*?);S:(.*?);P:(.*?);/.exec(payload);
+      if (!match) return null;
+      return { type: match[1], ssid: match[2], pass: match[3] };
     }
   
-    let constraints;
-    if (cameraSelect.value) {
-      // If user picked a camera, use it
-      constraints = { video: { deviceId: cameraSelect.value } };
-    } else {
-      // Otherwise, prefer back camera on phones
-      constraints = { video: { facingMode: "environment" } };
-    }
+    // Handle QR code result
+    function handleCode(code) {
+      if (code && code.data.startsWith("WIFI:")) {
+        const parsed = parseWiFiPayload(code.data);
+        if (parsed) {
+          scanInfo.classList.remove("hidden");
+          scanSSID.textContent = parsed.ssid || "(none)";
+          scanPass.textContent = parsed.pass || "(none)";
+          scanResult.textContent = "Wi-Fi QR Detected ✅";
   
-    try {
-      stream = await navigator.mediaDevices.getUserMedia(constraints);
-      video.srcObject = stream;
-      video.setAttribute("playsinline", true); // iOS Safari fix
-  
-      const canvasCapture = document.createElement("canvas");
-      const ctx = canvasCapture.getContext("2d");
-  
-      function tick() {
-        if (video.readyState === video.HAVE_ENOUGH_DATA) {
-          canvasCapture.width = video.videoWidth;
-          canvasCapture.height = video.videoHeight;
-          ctx.drawImage(video, 0, 0, canvasCapture.width, canvasCapture.height);
-          const imgData = ctx.getImageData(0, 0, canvasCapture.width, canvasCapture.height);
-          const code = jsQR(imgData.data, canvasCapture.width, canvasCapture.height);
-          if (code) handleCode(code);
+          copyPassBtn.onclick = async () => {
+            try {
+              await navigator.clipboard.writeText(parsed.pass || "");
+              copyPassBtn.textContent = "Copied!";
+              setTimeout(() => (copyPassBtn.textContent = "Copy"), 1200);
+            } catch {
+              alert("Could not copy password.");
+            }
+          };
         }
-        requestAnimationFrame(tick);
-      }
-      tick();
-    } catch (err) {
-      console.error("Camera error:", err);
-      if (err.name === "NotAllowedError") {
-        scanResult.textContent =
-          "Camera permission denied 🚫. Please allow it in browser/site settings.";
       } else {
-        scanResult.textContent = "Unable to access camera.";
+        scanResult.textContent = "Invalid or non-WiFi QR";
       }
     }
-  }
   
-  document.getElementById("fileInput").addEventListener("change", e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const img = new Image();
-    img.onload = () => {
-      const canvasCapture = document.createElement("canvas");
-      const ctx = canvasCapture.getContext("2d");
-      canvasCapture.width = img.width;
-      canvasCapture.height = img.height;
-      ctx.drawImage(img, 0, 0);
-      const imgData = ctx.getImageData(0, 0, canvasCapture.width, canvasCapture.height);
-      const code = jsQR(imgData.data, canvasCapture.width, canvasCapture.height);
-      handleCode(code);
-    };
-    img.src = URL.createObjectURL(file);
-  });
-
-  // === Tabs switch ===
-  const genTab = document.getElementById("tab-gen");
-  const scanTab = document.getElementById("tab-scan");
-  const gen = document.getElementById("generator");
-  const scan = document.getElementById("scanner");
-
-  genTab.onclick = () => {
-    genTab.classList.add("active");
-    scanTab.classList.remove("active");
-    gen.classList.remove("hidden");
-    scan.classList.add("hidden");
-    if (stream) {
-      video.srcObject.getTracks().forEach(track => track.stop());
-      stream = null;
+    // List available cameras
+    async function listCameras() {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        cameraSelect.innerHTML = "";
+        devices.forEach((device, i) => {
+          if (device.kind === "videoinput") {
+            const option = document.createElement("option");
+            option.value = device.deviceId;
+            option.text = device.label || `Camera ${i + 1}`;
+            cameraSelect.appendChild(option);
+          }
+        });
+  
+        // Restore last used camera
+        const savedCam = localStorage.getItem("lastCameraId");
+        if (savedCam && [...cameraSelect.options].some(opt => opt.value === savedCam)) {
+          cameraSelect.value = savedCam;
+        }
+      } catch (err) {
+        console.warn("Error listing cameras:", err);
+      }
     }
-  };
+  
+    // Start camera and scanning
+    async function startCam() {
+      if (stream) stopCam();
+  
+      let constraints = cameraSelect.value
+        ? { video: { deviceId: { exact: cameraSelect.value } } }
+        : { video: { facingMode: "environment" } };
+  
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = stream;
+        video.setAttribute("playsinline", true);
+  
+        localStorage.setItem("lastCameraId", cameraSelect.value);
+  
+        const canvasCapture = document.createElement("canvas");
+        const ctx = canvasCapture.getContext("2d");
+        scanning = true;
+  
+        function tick() {
+          if (!scanning) return;
+          if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            canvasCapture.width = video.videoWidth;
+            canvasCapture.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvasCapture.width, canvasCapture.height);
+            const imgData = ctx.getImageData(0, 0, canvasCapture.width, canvasCapture.height);
+            const code = jsQR(imgData.data, canvasCapture.width, canvasCapture.height);
+            if (code) handleCode(code);
+          }
+          requestAnimationFrame(tick);
+        }
+  
+        tick();
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+      } catch (err) {
+        console.error("Camera error:", err);
+        scanResult.textContent =
+          err.name === "NotAllowedError"
+            ? "Camera permission denied 🚫. Please allow it in browser settings."
+            : "Unable to access camera.";
+      }
+    }
+  
+    // Stop camera and scanning
+    function stopCam() {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+      }
+      scanning = false;
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+    }
+  
+    // Button events
+    startBtn.addEventListener("click", startCam);
+    stopBtn.addEventListener("click", stopCam);
+  
+    cameraSelect.addEventListener("change", () => {
+      if (scanning) startCam();
+    });
+  
+    // File input scanning
+    document.getElementById("fileInput").addEventListener("change", e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const img = new Image();
+      img.onload = () => {
+        const canvasCapture = document.createElement("canvas");
+        const ctx = canvasCapture.getContext("2d");
+        canvasCapture.width = img.width;
+        canvasCapture.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        const imgData = ctx.getImageData(0, 0, canvasCapture.width, canvasCapture.height);
+        const code = jsQR(imgData.data, canvasCapture.width, canvasCapture.height);
+        handleCode(code);
+      };
+      img.src = URL.createObjectURL(file);
+    });
+  
+    // ===== Tab switching =====
+    const genTab = document.getElementById("tab-gen");
+    const scanTab = document.getElementById("tab-scan");
+    const gen = document.getElementById("generator");
+    const scan = document.getElementById("scanner");
+  
+    genTab.onclick = () => {
+      genTab.classList.add("active");
+      scanTab.classList.remove("active");
+      gen.classList.remove("hidden");
+      scan.classList.add("hidden");
+      stopCam();
+    };
+  
+    scanTab.onclick = async () => {
+      scanTab.classList.add("active");
+      genTab.classList.remove("active");
+      scan.classList.remove("hidden");
+      gen.classList.add("hidden");
+      await listCameras(); // just list cameras, do not start automatically
+    };
 
-  scanTab.onclick = () => {
-    scanTab.classList.add("active");
-    genTab.classList.remove("active");
-    scan.classList.remove("hidden");
-    gen.classList.add("hidden");
-    startCam();
-  };
+    // ===== Footer =====
+    document.getElementById("year").textContent = new Date().getFullYear();
 });

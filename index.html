@@ -58,28 +58,35 @@
         </section>
       </div>
 
-      <!-- Scanner -->
-      <div id="scanner" class="hidden">
-        <section class="card">
-          <h2>Scan Wi-Fi QR Code</h2>
-          <label>
-            Camera:
-            <select id="camera-select"></select>
-          </label>          
-          <video id="video" autoplay></video>
-          <input type="file" id="fileInput" accept="image/*">
-      
-          <div id="scan-info" class="hidden">
-            <p><strong>SSID:</strong> <span id="scan-ssid"></span></p>
-            <p>
-              <strong>Password:</strong> 
-              <span id="scan-pass"></span>
-              <button id="copy-pass">Copy</button>
-            </p>
-          </div>
-          <p id="scan-result"></p>
-        </section>
-      </div>
+    <!-- Scanner -->
+    <div id="scanner" class="hidden">
+      <section class="card">
+        <h2>Scan Wi-Fi QR Code</h2>
+
+        <label>
+          Camera:
+          <select id="camera-select"></select>
+        </label>   
+
+        <div class="controls">
+          <button id="start-scan">Start Scan</button>
+          <button id="stop-scan" disabled>Stop Scan</button>
+        </div>       
+
+        <video id="video" autoplay playsinline></video>
+        <input type="file" id="fileInput" accept="image/*">
+
+        <div id="scan-info" class="hidden">
+          <p><strong>SSID:</strong> <span id="scan-ssid"></span></p>
+          <p>
+            <strong>Password:</strong> 
+            <span id="scan-pass"></span>
+            <button id="copy-pass">Copy</button>
+          </p>
+        </div>
+        <p id="scan-result"></p>
+      </section>
+    </div>
     </main>
 
     <footer>
