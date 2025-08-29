@@ -120,30 +120,44 @@ document.addEventListener("DOMContentLoaded", () => {
     const cameraSelect = document.getElementById("camera-select");
     const startBtn = document.getElementById("start-scan");
     const stopBtn = document.getElementById("stop-scan");
-  
+
     let stream = null;
     let scanning = false;
-  
-    // Parse Wi-Fi QR payload
+
     function parseWiFiPayload(payload) {
-      const match = /^WIFI:T:(.*?);S:(.*?);P:(.*?);/.exec(payload);
-      if (!match) return null;
-      return { type: match[1], ssid: match[2], pass: match[3] };
+    const match = /^WIFI:(?:T:(.*?);)?(?:S:(.*?);)?(?:P:(.*?);)?(?:H:(true|false);)?/.exec(payload);
+    if (!match) return null;
+
+    return {
+        type: match[1] || "nopass",
+        ssid: match[2] || "",
+        pass: match[3] || "",
+        hidden: match[4] === "true"
+    };
     }
-  
-    // Handle QR code result
+
+    // ===== Handle QR Code result =====
     function handleCode(code) {
-      if (code && code.data.startsWith("WIFI:")) {
+    if (code && code.data.startsWith("WIFI:")) {
         const parsed = parseWiFiPayload(code.data);
         if (parsed) {
-          scanInfo.classList.remove("hidden");
-          scanSSID.textContent = parsed.ssid || "(none)";
-          scanPass.textContent = parsed.pass || "(none)";
-          scanResult.textContent = "Wi-Fi QR Detected ✅";
-  
-          copyPassBtn.onclick = async () => {
+        scanInfo.classList.remove("hidden");
+
+        document.getElementById("scan-type").textContent = parsed.type;
+        scanSSID.textContent = parsed.ssid || "(none)";
+        scanPass.textContent = parsed.pass || "(none)";
+        document.getElementById("scan-hidden").textContent = parsed.hidden ? "Yes" : "No";
+
+        scanResult.textContent = "Wi-Fi QR Detected ✅";
+
+        copyPassBtn.onclick = async () => {
+            if (!parsed.pass) {
+              copyPassBtn.textContent = "No password";
+              setTimeout(() => (copyPassBtn.textContent = "Copy"), 1200);
+              return;
+            }
             try {
-              await navigator.clipboard.writeText(parsed.pass || "");
+              await navigator.clipboard.writeText(parsed.pass);
               copyPassBtn.textContent = "Copied!";
               setTimeout(() => (copyPassBtn.textContent = "Copy"), 1200);
             } catch {
@@ -151,104 +165,104 @@ document.addEventListener("DOMContentLoaded", () => {
             }
           };
         }
-      } else {
+    } else {
         scanResult.textContent = "Invalid or non-WiFi QR";
-      }
     }
-  
-    // List available cameras
+    }
+
+    // ===== List available cameras =====
     async function listCameras() {
-      try {
+    try {
         const devices = await navigator.mediaDevices.enumerateDevices();
         cameraSelect.innerHTML = "";
         devices.forEach((device, i) => {
-          if (device.kind === "videoinput") {
+        if (device.kind === "videoinput") {
             const option = document.createElement("option");
             option.value = device.deviceId;
             option.text = device.label || `Camera ${i + 1}`;
             cameraSelect.appendChild(option);
-          }
+        }
         });
-  
+
         // Restore last used camera
         const savedCam = localStorage.getItem("lastCameraId");
         if (savedCam && [...cameraSelect.options].some(opt => opt.value === savedCam)) {
-          cameraSelect.value = savedCam;
+        cameraSelect.value = savedCam;
         }
-      } catch (err) {
+    } catch (err) {
         console.warn("Error listing cameras:", err);
-      }
     }
-  
-    // Start camera and scanning
+    }
+
+    // ===== Start camera & scanning =====
     async function startCam() {
-      if (stream) stopCam();
-  
-      let constraints = cameraSelect.value
+    if (stream) stopCam();
+
+    let constraints = cameraSelect.value
         ? { video: { deviceId: { exact: cameraSelect.value } } }
         : { video: { facingMode: "environment" } };
-  
-      try {
+
+    try {
         stream = await navigator.mediaDevices.getUserMedia(constraints);
         video.srcObject = stream;
         video.setAttribute("playsinline", true);
-  
+
         localStorage.setItem("lastCameraId", cameraSelect.value);
-  
+
         const canvasCapture = document.createElement("canvas");
         const ctx = canvasCapture.getContext("2d");
         scanning = true;
-  
+
         function tick() {
-          if (!scanning) return;
-          if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        if (!scanning) return;
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
             canvasCapture.width = video.videoWidth;
             canvasCapture.height = video.videoHeight;
             ctx.drawImage(video, 0, 0, canvasCapture.width, canvasCapture.height);
             const imgData = ctx.getImageData(0, 0, canvasCapture.width, canvasCapture.height);
             const code = jsQR(imgData.data, canvasCapture.width, canvasCapture.height);
             if (code) handleCode(code);
-          }
-          requestAnimationFrame(tick);
         }
-  
+        requestAnimationFrame(tick);
+        }
+
         tick();
         startBtn.disabled = true;
         stopBtn.disabled = false;
-      } catch (err) {
+    } catch (err) {
         console.error("Camera error:", err);
         scanResult.textContent =
-          err.name === "NotAllowedError"
+        err.name === "NotAllowedError"
             ? "Camera permission denied 🚫. Please allow it in browser settings."
             : "Unable to access camera.";
-      }
     }
-  
-    // Stop camera and scanning
+    }
+
+    // ===== Stop camera & scanning =====
     function stopCam() {
-      if (stream) {
+    if (stream) {
         stream.getTracks().forEach(track => track.stop());
         stream = null;
-      }
-      scanning = false;
-      startBtn.disabled = false;
-      stopBtn.disabled = true;
     }
-  
-    // Button events
+    scanning = false;
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    }
+
+    // ===== Button events =====
     startBtn.addEventListener("click", startCam);
     stopBtn.addEventListener("click", stopCam);
-  
+
     cameraSelect.addEventListener("change", () => {
-      if (scanning) startCam();
+    if (scanning) startCam();
     });
-  
-    // File input scanning
+
+    // ===== File input scanning =====
     document.getElementById("fileInput").addEventListener("change", e => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const img = new Image();
-      img.onload = () => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const img = new Image();
+    img.onload = () => {
         const canvasCapture = document.createElement("canvas");
         const ctx = canvasCapture.getContext("2d");
         canvasCapture.width = img.width;
@@ -257,30 +271,30 @@ document.addEventListener("DOMContentLoaded", () => {
         const imgData = ctx.getImageData(0, 0, canvasCapture.width, canvasCapture.height);
         const code = jsQR(imgData.data, canvasCapture.width, canvasCapture.height);
         handleCode(code);
-      };
-      img.src = URL.createObjectURL(file);
+    };
+    img.src = URL.createObjectURL(file);
     });
-  
+
     // ===== Tab switching =====
     const genTab = document.getElementById("tab-gen");
     const scanTab = document.getElementById("tab-scan");
     const gen = document.getElementById("generator");
     const scan = document.getElementById("scanner");
-  
+
     genTab.onclick = () => {
-      genTab.classList.add("active");
-      scanTab.classList.remove("active");
-      gen.classList.remove("hidden");
-      scan.classList.add("hidden");
-      stopCam();
+    genTab.classList.add("active");
+    scanTab.classList.remove("active");
+    gen.classList.remove("hidden");
+    scan.classList.add("hidden");
+    stopCam();
     };
-  
+
     scanTab.onclick = async () => {
-      scanTab.classList.add("active");
-      genTab.classList.remove("active");
-      scan.classList.remove("hidden");
-      gen.classList.add("hidden");
-      await listCameras(); // just list cameras, do not start automatically
+    scanTab.classList.add("active");
+    genTab.classList.remove("active");
+    scan.classList.remove("hidden");
+    gen.classList.add("hidden");
+    await listCameras(); // just list cameras, do not start automatically
     };
 
     // ===== Footer =====
