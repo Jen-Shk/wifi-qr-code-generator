@@ -1,103 +1,112 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Wi-Fi QR Code Generator & Scanner</title>
-    <link rel="icon" href="image/image.png">
-    <link rel="stylesheet" href="style.css">
-  </head>
-  <body>
-    <main class="container">
-      <h1>Wi-Fi QR Code Tool</h1>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1.0">
+        <title>Wi-Fi QR Code Generator & Scanner</title>
+        <link rel="icon" href="image/image.png">
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <main class="container">
+            <h1>Wi-Fi QR Code Tool</h1>
 
-      <div class="tabs">
-        <button id="tab-gen" class="active">Generator</button>
-        <button id="tab-scan">Scanner</button>
-      </div>
+            <div class="tabs">
+                <button id="tab-gen" class="active">Generator</button>
+                <button id="tab-scan">Scanner</button>
+            </div>
 
-      <!-- Generator -->
-      <div id="generator">
-        <form id="wifi-form" class="card" autocomplete="off">
-          <label>
-            Wi-Fi Name (SSID)
-            <input type="text" id="ssid" placeholder="e.g., Home_Network" required>
-          </label>
+            <!-- Generator -->
+            <div id="generator">
+                <form id="wifi-form" class="card" autocomplete="off">
+                    <label>
+                        Wi-Fi Name (SSID)
+                        <input type="text" id="ssid" placeholder="e.g., Home_Network" required>
+                    </label>
 
-          <label>
-            Security
-            <select id="auth">
-              <option value="WPA" selected>WPA/WPA2/WPA3</option>
-              <option value="WEP">WEP</option>
-              <option value="nopass">None (Open)</option>
-            </select>
-          </label>
+                    <label>
+                        Security
+                        <select id="auth">
+                            <option value="WPA" selected>WPA/WPA2/WPA3</option>
+                            <option value="WEP">WEP</option>
+                            <option value="nopass">None (Open)</option>
+                        </select>
+                    </label>
 
-          <label id="password-wrap">
-            Password
-            <input type="text" id="password" placeholder="••••••••">
-          </label>
+                    <label id="password-wrap">
+                        Password
+                        <input type="text" id="password" placeholder="••••••••">
+                    </label>
 
-          <label class="row">
-            <input type="checkbox" id="hidden">
-            <span>Hidden network</span>
-          </label>
+                    <label class="row">
+                        <input type="checkbox" id="hidden">
+                        <span>Hidden network</span>
+                    </label>
 
-          <button type="submit" id="generate">Generate QR</button>
-        </form>
+                    <button type="submit" id="generate">Generate QR</button>
+                </form>
 
-        <section class="output card">
-          <h2>Your QR Code</h2>
-          <canvas id="qr-canvas" width="280" height="280"></canvas>
-          <div class="row">
-            <button id="download">Download PNG</button>
-            <button id="copy">Copy Text Payload</button>
-          </div>
-          <p class="note">Scan with your phone's camera to join the Wi-Fi network.</p>
-          <pre id="payload" class="payload" aria-live="polite"></pre>
-        </section>
-      </div>
+                <section class="output card">
+                    <h2>Your QR Code</h2>
+                    <canvas id="qr-canvas" width="280" height="280"></canvas>
+                    <div class="row">
+                        <button id="download">Download PNG</button>
+                        <button id="copy">Copy Text Payload</button>
+                    </div>
+                    <p class="note">Scan with your phone's camera to join the Wi-Fi network.</p>
+                    <pre id="payload" class="payload" aria-live="polite"></pre>
+                </section>
+            </div>
 
-    <!-- Scanner -->
-    <div id="scanner" class="hidden">
-      <section class="card">
-        <h2>Scan Wi-Fi QR Code</h2>
+            <!-- Scanner -->
+            <div id="scanner" class="hidden">
+                <section class="card">
+                    <h2>Scan Wi-Fi QR Code</h2>
+                    <p class="scanner-notice">
+                        📌 <strong>Your camera is used only locally for scanning QR codes. No data is collected or sent.</strong>
+                    </p>
 
-        <label>
-          Camera:
-          <select id="camera-select"></select>
-        </label>   
+                    <label>
+                        Camera:
+                        <select id="camera-select"></select>
+                    </label>
 
-        <div class="controls">
-          <button id="start-scan">Start Scan</button>
-          <button id="stop-scan" disabled>Stop Scan</button>
-        </div>       
+                    <div class="controls">
+                        <button id="start-scan">Start Scan</button>
+                        <button id="stop-scan" disabled>Stop Scan</button>
+                        <button id="clear-screen">Clear Screen</button>
+                    </div>
 
-        <video id="video" autoplay playsinline></video>
-        <input type="file" id="fileInput" accept="image/*">
+                    <video id="video" autoplay muted playsinline></video>
+                    <canvas id="video-canvas" class="hidden"></canvas>
+                    <input type="file" id="fileInput" accept="image/*">
 
-        <div id="scan-info" class="hidden">
-          <p><strong>Type:</strong> <span id="scan-type"></span></p>
-          <p><strong>SSID:</strong> <span id="scan-ssid"></span></p>
-          <p>
-            <strong>Password:</strong> 
-            <span id="scan-pass"></span>
-            <button id="copy-pass">Copy</button>
-          </p>
-          <p><strong>Hidden:</strong> <span id="scan-hidden"></span></p>
-        </div>
-        <p id="scan-result"></p>
-      </section>
-    </div>
-    </main>
+                    <div id="scan-info" class="hidden">
+                        <p><strong>Type:</strong> <span id="scan-type"></span></p>
+                        <p><strong>SSID:</strong> <span id="scan-ssid"></span></p>
+                        <p>
+                            <strong>Password:</strong> 
+                            <span id="scan-pass"></span>
+                            <button id="copy-pass">Copy</button>
+                        </p>
+                        <p><strong>Hidden:</strong> <span id="scan-hidden"></span></p>
+                    </div>
 
-    <footer>
-      <p>&copy; <span id="year"></span> WiFi QR Code Generator. All rights reserved.</p>
-      <p>🔒 Your WiFi data is safe — nothing is stored on our servers.</p>
-    </footer>
+                    <p id="scan-result"></p>
+                    <div class="output">
+                        <pre id="scan-payload" class="payload" aria-live="polite"></pre>
+                    </div>
+                </section>
+            </div>
+        </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
-    <script src="app.js"></script>
-  </body>
+        <footer>
+            <p>&copy; <span id="year"></span> WiFi QR Code Generator. All rights reserved.</p>
+            <p>🔒 Your WiFi data is safe — nothing is stored on our servers.</p>
+        </footer>
+
+        <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
+        <script src="app.js"></script>
+    </body>
 </html>
