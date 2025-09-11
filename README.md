@@ -24,6 +24,19 @@ The idea is to make it easier to share Wi-Fi without typing the password.
 - Works best on Chrome, Edge, or Safari mobile.
 - It’s still basic for now, but it works. I plan to improve it later.
 
+## Updates
+- **Scanner Tab Updated**:
+  - Improved camera scanning functionality for better detection.
+  - Added **Clear Screen** button to reset scanned results.
+  - Fixed issues with scanning QR codes from uploaded images.
+- **Wi-Fi QR Code Generator**:
+  - Ensured proper handling of all network types including `nopass`.
+  - Improved payload formatting for hidden networks.
+- **UI & Responsiveness**:
+  - Layout optimized for both mobile and desktop screens.
+  - Minor styling tweaks for better readability of scanned results.
+
+
 ## License
 MIT License – free to use, change, and share.
 
