@@ -114,15 +114,19 @@ document.addEventListener("DOMContentLoaded", () => {
     const video = document.getElementById("video");
     const scanResult = document.getElementById("scan-result");
     const scanInfo = document.getElementById("scan-info");
+    const scanType = document.getElementById("scan-type");
     const scanSSID = document.getElementById("scan-ssid");
     const scanPass = document.getElementById("scan-pass");
     const copyPassBtn = document.getElementById("copy-pass");
+    const scanHidden = document.getElementById("scan-hidden");
     const cameraSelect = document.getElementById("camera-select");
     const startBtn = document.getElementById("start-scan");
     const stopBtn = document.getElementById("stop-scan");
     const videoCanvas = document.getElementById("video-canvas");
     const videoCtx = videoCanvas.getContext("2d");
     const clearBtn = document.getElementById("clear-screen");
+    const scanPayload = document.getElementById("scan-payload");
+
 
     let stream = null;
     let scanning = false;
@@ -146,20 +150,20 @@ document.addEventListener("DOMContentLoaded", () => {
     // ===== Handle QR Code result =====
     function handleCode(code, sourceImage = null) {
         scanInfo.classList.add("hidden");
-        document.getElementById("scan-payload").textContent = "";
+        scanPayload.textContent = "";
 
         if (code && code.data.startsWith("WIFI:")) {
             const parsed = parseWiFiPayload(code.data);
             if (parsed) {
                 scanInfo.classList.remove("hidden");
 
-                document.getElementById("scan-type").textContent = parsed.type;
+                scanType.textContent = parsed.type;
                 scanSSID.textContent = parsed.ssid || "(none)";
                 scanPass.textContent = parsed.pass || "(none)";
-                document.getElementById("scan-hidden").textContent = parsed.hidden ? "Yes" : "No";
+                scanHidden.textContent = parsed.hidden ? "Yes" : "No";
 
                 scanResult.textContent = "Wi-Fi QR Detected ✅";
-                document.getElementById("scan-payload").textContent = code.data;
+                scanPayload.textContent = code.data;
 
                 video.classList.add("hidden");
                 videoCanvas.classList.remove("hidden");
@@ -222,6 +226,15 @@ document.addEventListener("DOMContentLoaded", () => {
     async function startCam() {
         video.classList.remove("hidden");
         videoCanvas.classList.add("hidden");
+
+        if(fileInput) fileInput.value = "";
+        if(scanResult) scanResult.textContent = "";
+        if(scanPayload) scanPayload.textContent = "";
+        if(scanType) scanType.textContent = "";
+        if(scanSSID) scanSSID.textContent = "";
+        if(scanPass) scanPass.textContent = "";
+        if(scanHidden) scanHidden.textContent = "";
+        if(scanInfo) scanInfo.classList.add("hidden");
 
         if (stream) stopCam();
 
@@ -308,11 +321,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         scanResult.textContent = "";
-        document.getElementById("scan-type").textContent = "";
+        scanType.textContent = "";
         scanSSID.textContent = "";
         scanPass.textContent = "";
-        document.getElementById("scan-hidden").textContent = "";
-        document.getElementById("scan-payload").textContent = "";
+        scanHidden.textContent = "";
+        scanPayload.textContent = "";
         scanInfo.classList.add("hidden");
 
         if (fileInput) fileInput.value = "";
@@ -333,7 +346,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!file) return;
 
         const img = new Image();
-        img.onload = () => {
+        img.onload = async () => {
             const maxSize = 400;
             let w = img.width;
             let h = img.height;
@@ -356,8 +369,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (code) {
                 handleCode(code);
-            } else {
-                console.log("❌ jsQR failed to detect QR at all");
+                return;
+            }
+
+            try {
+                const codeReader = new ZXing.BrowserQRCodeReader();
+                const result = await codeReader.decodeFromImage(img);
+                if (result && result.text) {
+                    handleCode({ data: result.text });
+                } else {
+                    scanResult.textContent = "Could not read QR from image ❌";
+                }
+            } catch (err) {
+                console.error("ZXing failed:", err);
                 scanResult.textContent = "Could not read QR from image ❌";
             }
         };
